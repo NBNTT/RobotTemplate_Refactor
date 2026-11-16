@@ -12,6 +12,10 @@ import org.littletonrobotics.junction.Logger;
 /** Four swerve modules, ordered FL, FR, BL, BR to match the kinematics. */
 public class Swerve extends SubsystemBase {
     private final SwerveModule[] modules;
+    // Keeps each module's reported distance continuous when it drops off and comes back.
+    private final double[] positionOffsets = new double[4];
+    private final double[] lastPositionsMeters = new double[4];
+    private final boolean[] wasFailed = new boolean[4];
 
     public Swerve(
             SwerveModuleIO frontLeft,
@@ -28,7 +32,7 @@ public class Swerve extends SubsystemBase {
     }
 
     public void setStates(SwerveModuleState[] states) {
-        SwerveDriveKinematics.desaturateWheelSpeeds(states, DriveConstants.kSpeed);
+        SwerveDriveKinematics.desaturateWheelSpeeds(states, DriveConstants.kMaxSpeed);
         for (int i = 0; i < modules.length; i++) {
             modules[i].setState(states[i]);
         }
@@ -75,12 +79,23 @@ public class Swerve extends SubsystemBase {
             }
         }
 
-        if (healthy == 0 || healthy == modules.length) return positions;
+        // No healthy wheel left: every wheel freezes where it was instead of jumping to zero.
+        double averageDistance = healthy == 0 ? 0 : distance / healthy;
+        Rotation2d averageAngle = healthy == 0 ? new Rotation2d() : new Rotation2d(cos, sin);
 
-        SwerveModulePosition average =
-                new SwerveModulePosition(distance / healthy, new Rotation2d(cos, sin));
         for (int i = 0; i < modules.length; i++) {
-            if (modules[i].isFailed()) positions[i] = average;
+            boolean failed = modules[i].isFailed();
+            double raw = failed ? averageDistance : positions[i].distanceMeters;
+            // The estimator only sees deltas, so a jump here becomes a pose error it never undoes.
+            // Re-anchor on each health change to keep the reported distance continuous.
+            if (failed != wasFailed[i]) {
+                positionOffsets[i] = lastPositionsMeters[i] - raw;
+                wasFailed[i] = failed;
+            }
+            lastPositionsMeters[i] = raw + positionOffsets[i];
+            positions[i] =
+                    new SwerveModulePosition(
+                            lastPositionsMeters[i], failed ? averageAngle : positions[i].angle);
         }
         return positions;
     }

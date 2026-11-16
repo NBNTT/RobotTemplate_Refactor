@@ -42,18 +42,25 @@ public class DriveTeleOp extends Command {
         if (mode == Mode.POINT) pointHeading = odometry.getHeading(); // no snap on entry
     }
 
+    /** Back button: drop the held point target and re-zero the field. */
+    public void resetHeading() {
+        pointHeading = new Rotation2d();
+        odometry.reset();
+    }
+
     @Override
     public void execute() {
         boolean slow = controller.slowMode();
-        double speed = slow ? DriveConstants.kSlowSpeed : DriveConstants.kSpeed;
+        double speed = slow ? DriveConstants.kSlowSpeed : DriveConstants.kMaxSpeed;
         double turnSpeed = slow ? DriveConstants.kTurnSlowSpeed : DriveConstants.kTurnSpeed;
 
         double forward = DriveMath.curve(controller.forward(), OIConstants.kDeadband) * speed;
         double strafe = DriveMath.curve(controller.strafe(), OIConstants.kDeadband) * speed;
         double turn = DriveMath.curve(controller.turn(), OIConstants.kDeadband) * turnSpeed;
 
+        // A dead gyro means no field frame, so every mode falls back to robot-relative.
         ChassisSpeeds speeds =
-                switch (mode) {
+                switch (odometry.isGyroOk() ? mode : Mode.ROBOT) {
                     case ROBOT -> new ChassisSpeeds(forward, strafe, turn);
                     case FIELD -> ChassisSpeeds.fromFieldRelativeSpeeds(
                             forward, strafe, turn, odometry.getHeading());

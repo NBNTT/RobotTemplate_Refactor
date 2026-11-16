@@ -14,33 +14,46 @@ public class Odometry extends SubsystemBase {
     private final Swerve swerve;
     private final Pigeon2 pigeon;
     private final SwerveDrivePoseEstimator estimator;
+    private Rotation2d heading;
+    private boolean gyroOk;
 
     public Odometry(Swerve swerve) {
         this.swerve = swerve;
         pigeon = new Pigeon2(CAN.kPigeonPort);
+        readGyro();
         estimator =
                 new SwerveDrivePoseEstimator(
-                        DriveConstants.kKinematics,
-                        getHeading(),
-                        swerve.getPositions(),
-                        new Pose2d());
+                        DriveConstants.kKinematics, heading, swerve.getPositions(), new Pose2d());
     }
 
     @Override
     public void periodic() {
-        // swerve.getPositions() already swaps out failed module encoders.
-        estimator.update(getHeading(), swerve.getPositions());
+        // A Pigeon read refreshes a status signal, so read once and let the rest use the cache.
+        readGyro();
+        estimator.update(heading, swerve.getPositions());
         Logger.recordOutput("Odometry/Pose", getPose());
+        Logger.recordOutput("Odometry/GyroOk", gyroOk);
     }
 
-    /** Back button: field forward is now robot forward and the pose starts again at the origin. */
+    /** Back button: field forward is robot forward again and the pose restarts at the origin. */
     public void reset() {
         pigeon.setYaw(0);
-        estimator.resetPosition(getHeading(), swerve.getPositions(), new Pose2d());
+        readGyro();
+        estimator.resetPosition(heading, swerve.getPositions(), new Pose2d());
+    }
+
+    private void readGyro() {
+        heading = pigeon.getRotation2d();
+        gyroOk = pigeon.getYaw().getStatus().isOK();
     }
 
     public Rotation2d getHeading() {
-        return pigeon.getRotation2d();
+        return heading;
+    }
+
+    /** Field-relative driving must not trust a heading that stopped updating. */
+    public boolean isGyroOk() {
+        return gyroOk;
     }
 
     public Pose2d getPose() {

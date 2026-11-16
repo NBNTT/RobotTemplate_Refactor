@@ -59,14 +59,14 @@ public final class Constants {
             this.driveRatio = ModuleConstants.kDriveGearRatios[DriveConstants.kGear];
         }
 
-        /** Motor rotations -> wheel meters. */
+        /** Motor rotations -> wheel meters. The 7:1 gear divides, it does not multiply. */
         public double driveRotToMeters() {
-            return driveRatio * Math.PI * ModuleConstants.kWheelDiameterMeters;
+            return Math.PI * ModuleConstants.kWheelDiameterMeters / driveRatio;
         }
 
-        /** Motor rotations -> wheel radians. */
-        public double turnRotToRad() {
-            return ModuleConstants.kTurnGearRatio * 2 * Math.PI;
+        /** Wheel speed at full voltage with this gearing. */
+        public double driveFreeSpeedMps() {
+            return driveRotToMeters() * ModuleConstants.kMotorFreeSpeedRpm / 60;
         }
     }
 
@@ -76,15 +76,16 @@ public final class Constants {
         // Index 0 is unused filler so kGear reads 1-3 like the SDS chart.
         // Doubles matter: 225 / 32 as ints would silently become 7.
         public static final double[] kDriveGearRatios = {1, 225.0 / 32, 675.0 / 112, 675.0 / 128};
-        public static final double kTurnGearRatio = 287.0 / 11;
 
-        public static final Pid kTurnPid = new Pid(1, 0, 0);
+        /** Motor free speed at 12 V: NEO 5676 rpm, NEO Vortex 6784 rpm. */
+        public static final double kMotorFreeSpeedRpm = 5676;
+
+        // Steer needs real voltage against the 26:1 gear; drive adds kV feedforward in code.
+        public static final Pid kTurnPid = new Pid(6, 0, 0);
         public static final Pid kDrivePid = new Pid(1, 0, 0);
     }
 
     public static final class DriveConstants {
-        // Full stick speed, then slow mode while the right bumper is held.
-        public static final double kSpeed = 5;
         public static final double kSlowSpeed = 1.5;
 
         // Radians per second.
@@ -120,6 +121,9 @@ public final class Constants {
         public static final SwerveModulePreset kModuleBR =
                 new SwerveModulePreset(
                         CAN.kDriveMotorPortBR, CAN.kTurnMotorPortBR, false, false, 3, 0);
+
+        /** Full stick speed and desaturation ceiling: the wheels cannot spin faster than this. */
+        public static final double kMaxSpeed = kModuleFL.driveFreeSpeedMps();
 
         /** Toe-in X so a pushed robot resists sliding; fronts and backs point opposite ways. */
         public static final SwerveModuleState[] kLockStates = {

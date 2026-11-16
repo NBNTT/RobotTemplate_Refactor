@@ -25,6 +25,7 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
     private final AnalogInput absoluteEncoder;
     private final PIDController drivePid, turnPid;
     private final double encoderOffsetRad;
+    private final double driveKv;
 
     public SparkMaxSwerveModule(SwerveModulePreset preset) {
         driveMotor = new SparkMax(preset.drivePort, MotorType.kBrushless);
@@ -52,6 +53,8 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
         drivePid = pid(ModuleConstants.kDrivePid);
         turnPid = pid(ModuleConstants.kTurnPid);
         turnPid.enableContinuousInput(-Math.PI, Math.PI); // steer the short way round
+        // Volts per m/s the motor needs at speed; without it a P loop settles far below target.
+        driveKv = kNominalVoltage / preset.driveFreeSpeedMps();
     }
 
     private static PIDController pid(Pid gains) {
@@ -65,8 +68,8 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
 
     @Override
     public void setDriveVelocity(double metersPerSecond) {
-        driveMotor.setVoltage(
-                clamp(drivePid.calculate(driveMotor.getEncoder().getVelocity(), metersPerSecond)));
+        double correction = drivePid.calculate(getDriveVelocity(), metersPerSecond);
+        driveMotor.setVoltage(clamp(driveKv * metersPerSecond + correction));
     }
 
     @Override

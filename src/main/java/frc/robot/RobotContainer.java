@@ -40,7 +40,7 @@ public class RobotContainer {
         controller.robotMode().onTrue(runOnce(() -> drive.setMode(DriveTeleOp.Mode.ROBOT)));
         controller.pointMode().onTrue(runOnce(() -> drive.setMode(DriveTeleOp.Mode.POINT)));
 
-        controller.resetHeading().onTrue(runOnce(odometry::reset));
+        controller.resetHeading().onTrue(runOnce(drive::resetHeading));
         controller.lockWheels().whileTrue(swerve.run(swerve::lockWheels));
     }
 }
