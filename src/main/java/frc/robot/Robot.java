@@ -14,49 +14,17 @@ public class Robot extends LoggedRobot {
     private final RobotContainer robotContainer;
 
     public Robot() {
-        robotContainer = new RobotContainer();
-    }
-
-    @Override
-    public void robotInit() {
-        Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs/"));
+        // Default WPILOG path: /home/lvuser/logs on the roboRIO, ./logs on a laptop.
+        Logger.addDataReceiver(new WPILOGWriter());
         Logger.addDataReceiver(new NT4Publisher());
-
         Logger.start();
+
+        // Built after Logger.start() so construction-time logs are captured.
+        robotContainer = new RobotContainer();
     }
 
     @Override
     public void robotPeriodic() {
         CommandScheduler.getInstance().run();
     }
-
-    @Override
-    public void autonomousInit() {}
-
-    @Override
-    public void autonomousPeriodic() {}
-
-    @Override
-    public void teleopInit() {}
-
-    @Override
-    public void teleopPeriodic() {}
-
-    @Override
-    public void disabledInit() {}
-
-    @Override
-    public void disabledPeriodic() {}
-
-    @Override
-    public void testInit() {}
-
-    @Override
-    public void testPeriodic() {}
-
-    @Override
-    public void simulationInit() {}
-
-    @Override
-    public void simulationPeriodic() {}
 }

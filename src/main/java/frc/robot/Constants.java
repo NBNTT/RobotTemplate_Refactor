@@ -6,168 +6,18 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 
-public class Constants {
-    public static class FieldConstants {
-        public static final boolean fieldOriented = true;
-    }
+/** Every tunable number in one place. Units are meters, radians and seconds unless noted. */
+public final class Constants {
+    private Constants() {}
 
-    public static class OIConstants {
-        public static final ControllerType controllerTypeDriver = ControllerType.XBOX;
-        public static final ControllerType controllerTypeOperator = ControllerType.XBOX;
+    public static final class OIConstants {
+        public static final int kDriverPort = 0;
 
-        public static final int kDriverControllerPort = 0;
-        public static final int kOperatorControllerPort = 1;
-
+        /** Stick deadband in 0-1 units; inputs inside it are treated as zero. */
         public static final double kDeadband = 0.11;
-        public static final double kRumbleStrength = 0.025;
     }
 
-    public static class SwerveModulePreset {
-        public final int drivePort, turnPort, encoderPort;
-        public final double driveRatio, encoderOffset;
-        public final boolean driveInverted, turnInverted;
-
-        public SwerveModulePreset(
-                int drivePort,
-                int turnPort,
-                boolean driveInverted,
-                boolean turnInverted,
-                int encoderPort,
-                double encoderOffset) {
-            this.drivePort = drivePort;
-            this.turnPort = turnPort;
-
-            this.encoderPort = encoderPort;
-            this.encoderOffset = encoderOffset;
-
-            this.driveRatio = SwerveModuleConstants.kDriveGearRatios[DriveConstants.kGear];
-            this.driveInverted = driveInverted;
-            this.turnInverted = turnInverted;
-        }
-
-        // units: rot -> m
-        public double driveRot2Meters() {
-            return driveRatio * Math.PI * SwerveModuleConstants.kWheelDiameter;
-        }
-
-        // units: rot -> rad
-        public double turnRot2Rads() {
-            return SwerveModuleConstants.kTurnGearRatio * Math.PI * 2;
-        }
-
-        // units: rot/min -> m/s
-        public double driveRPM2MetersPerSec() {
-            return driveRot2Meters() / 60;
-        }
-
-        // units: rot/min -> rad/s
-        public double turnRPM2RadsPerSec() {
-            return turnRot2Rads() * Math.PI * 2;
-        }
-    }
-
-    public static class SwerveModulePIDValues {
-        public final double turnP, turnI, turnD, driveP, driveI, driveD;
-
-        public SwerveModulePIDValues(
-                double turnP,
-                double turnI,
-                double turnD,
-                double driveP,
-                double driveI,
-                double driveD) {
-            this.turnP = turnP;
-            this.turnI = turnI;
-            this.turnD = turnD;
-
-            this.driveP = driveP;
-            this.driveI = driveI;
-            this.driveD = driveD;
-        }
-    }
-
-    public static final class SwerveModuleConstants {
-        // units: m
-        public static final double kWheelDiameter = Units.inchesToMeters(3.75);
-        // units: m/s
-        public static final double kMaxSpeed = 12;
-
-        public static final double[] kDriveGearRatios = {
-            1, // Filler
-            225 / 32, 675 / 112, 675 / 128
-        };
-        public static final double kTurnGearRatio = 287 / 11;
-
-        public static final SwerveModulePIDValues kSparkMaxPID =
-                new SwerveModulePIDValues(1, 0, 0, 1, 0, 0);
-        public static final SwerveModulePIDValues kTalonFxPID =
-                new SwerveModulePIDValues(1, 0, 0, 1, 0, 0);
-    }
-
-    public static class DriveConstants {
-        // units: m/s
-        public static final double kDriveMaxSpeed = 5;
-        public static final double kDriveSpeed = 5;
-        public static final double kDriveSlowSpeed = 1.5;
-
-        // units: rad/s
-        public static final double kTurnMaxSpeed = 5 * Math.PI;
-        public static final double kTurnSpeed = 3 * Math.PI;
-        public static final double kTurnSlowSpeed = 1 * Math.PI;
-
-        // units: m
-        public static final double kTrackWidth = Units.inchesToMeters(21.75);
-        public static final double kWheelBase = Units.inchesToMeters(21.75);
-
-        public static final int kGear = 1;
-
-        public static final SwerveDriveKinematics kDriveKinematics =
-                new SwerveDriveKinematics(
-                        new Translation2d(kWheelBase / 2, kTrackWidth / 2), // Front left (+/+)
-                        new Translation2d(kWheelBase / 2, -kTrackWidth / 2), // Front right (+/-)
-                        new Translation2d(-kWheelBase / 2, kTrackWidth / 2), // Back left (-/+)
-                        new Translation2d(-kWheelBase / 2, -kTrackWidth / 2)); // Back right (-/-)
-
-        public static final SwerveModulePreset kModuleFL =
-                new SwerveModulePreset(
-                        CAN.kDriveMotorPortFL, CAN.kTurnMotorPortFL, false, false, 0, 0);
-        public static final SwerveModulePreset kModuleFR =
-                new SwerveModulePreset(
-                        CAN.kDriveMotorPortFR, CAN.kTurnMotorPortFR, false, false, 1, 0);
-        public static final SwerveModulePreset kModuleBL =
-                new SwerveModulePreset(
-                        CAN.kDriveMotorPortBL, CAN.kTurnMotorPortBL, false, false, 2, 0);
-        public static final SwerveModulePreset kModuleBR =
-                new SwerveModulePreset(
-                        CAN.kDriveMotorPortBR, CAN.kTurnMotorPortBR, false, false, 3, 0);
-
-        /*
-        // units: m/s
-        public static final double kMaxSpeed = 5;
-        // units: rad/s
-        public static final double kMaxAngularSpeed = 3 * Math.PI;
-
-        // units: m/s/s
-        public static final double kMaxAcceleration = 5;
-        // units: rad/s/s
-        public static final double kMaxAngularAcceleration = 3 * Math.PI;
-         */
-
-        // units: kg
-        public static final double kRobotMass = 50;
-        // units: kg/m/m
-        public static final double kRobotMOI = 7.0;
-
-        public static final SwerveModuleState[] kLockStates =
-                new SwerveModuleState[] {
-                    new SwerveModuleState(0, new Rotation2d(Math.PI / 4)),
-                    new SwerveModuleState(0, new Rotation2d(-Math.PI / 4)),
-                    new SwerveModuleState(0, new Rotation2d(Math.PI / 4)),
-                    new SwerveModuleState(0, new Rotation2d(-Math.PI / 4))
-                };
-    }
-
-    public static class CAN {
+    public static final class CAN {
         public static final int kDriveMotorPortFL = 10;
         public static final int kTurnMotorPortFL = 20;
 
@@ -183,9 +33,100 @@ public class Constants {
         public static final int kPigeonPort = 30;
     }
 
-    public static enum ControllerType {
-        XBOX,
-        LOGITECH,
-        JOYSTICK
+    /** PID gains for a swerve module; shared by every module implementation. */
+    public record Pid(double p, double i, double d) {}
+
+    /** One swerve module's wiring plus the gearing that turns motor rotations into meters. */
+    public static final class SwerveModulePreset {
+        public final int drivePort, turnPort, encoderPort;
+        public final double encoderOffsetRad;
+        public final boolean driveInverted, turnInverted;
+        private final double driveRatio;
+
+        public SwerveModulePreset(
+                int drivePort,
+                int turnPort,
+                boolean driveInverted,
+                boolean turnInverted,
+                int encoderPort,
+                double encoderOffsetRad) {
+            this.drivePort = drivePort;
+            this.turnPort = turnPort;
+            this.driveInverted = driveInverted;
+            this.turnInverted = turnInverted;
+            this.encoderPort = encoderPort;
+            this.encoderOffsetRad = encoderOffsetRad;
+            this.driveRatio = ModuleConstants.kDriveGearRatios[DriveConstants.kGear];
+        }
+
+        /** Motor rotations -> wheel meters. */
+        public double driveRotToMeters() {
+            return driveRatio * Math.PI * ModuleConstants.kWheelDiameterMeters;
+        }
+
+        /** Motor rotations -> wheel radians. */
+        public double turnRotToRad() {
+            return ModuleConstants.kTurnGearRatio * 2 * Math.PI;
+        }
+    }
+
+    public static final class ModuleConstants {
+        public static final double kWheelDiameterMeters = Units.inchesToMeters(3.75);
+
+        // Index 0 is unused filler so kGear reads 1-3 like the SDS chart.
+        // Doubles matter: 225 / 32 as ints would silently become 7.
+        public static final double[] kDriveGearRatios = {1, 225.0 / 32, 675.0 / 112, 675.0 / 128};
+        public static final double kTurnGearRatio = 287.0 / 11;
+
+        public static final Pid kTurnPid = new Pid(1, 0, 0);
+        public static final Pid kDrivePid = new Pid(1, 0, 0);
+    }
+
+    public static final class DriveConstants {
+        // Full stick speed, then slow mode while the right bumper is held.
+        public static final double kSpeed = 5;
+        public static final double kSlowSpeed = 1.5;
+
+        // Radians per second.
+        public static final double kTurnSpeed = 3 * Math.PI;
+        public static final double kTurnSlowSpeed = Math.PI;
+
+        // Point mode P gain: radians per second of correction per radian of heading error.
+        public static final double kHeadingKp = 3;
+
+        // Units: m.
+        public static final double kTrackWidth = Units.inchesToMeters(21.75);
+        public static final double kWheelBase = Units.inchesToMeters(21.75);
+
+        public static final int kGear = 1;
+
+        /** Module order everywhere in this code is FL, FR, BL, BR. */
+        public static final SwerveDriveKinematics kKinematics =
+                new SwerveDriveKinematics(
+                        new Translation2d(kWheelBase / 2, kTrackWidth / 2), // FL (+x, +y)
+                        new Translation2d(kWheelBase / 2, -kTrackWidth / 2), // FR (+x, -y)
+                        new Translation2d(-kWheelBase / 2, kTrackWidth / 2), // BL (-x, +y)
+                        new Translation2d(-kWheelBase / 2, -kTrackWidth / 2)); // BR (-x, -y)
+
+        public static final SwerveModulePreset kModuleFL =
+                new SwerveModulePreset(
+                        CAN.kDriveMotorPortFL, CAN.kTurnMotorPortFL, false, false, 0, 0);
+        public static final SwerveModulePreset kModuleFR =
+                new SwerveModulePreset(
+                        CAN.kDriveMotorPortFR, CAN.kTurnMotorPortFR, false, false, 1, 0);
+        public static final SwerveModulePreset kModuleBL =
+                new SwerveModulePreset(
+                        CAN.kDriveMotorPortBL, CAN.kTurnMotorPortBL, false, false, 2, 0);
+        public static final SwerveModulePreset kModuleBR =
+                new SwerveModulePreset(
+                        CAN.kDriveMotorPortBR, CAN.kTurnMotorPortBR, false, false, 3, 0);
+
+        /** Toe-in X so a pushed robot resists sliding; fronts and backs point opposite ways. */
+        public static final SwerveModuleState[] kLockStates = {
+            new SwerveModuleState(0, new Rotation2d(Math.PI / 4)),
+            new SwerveModuleState(0, new Rotation2d(-Math.PI / 4)),
+            new SwerveModuleState(0, new Rotation2d(-Math.PI / 4)),
+            new SwerveModuleState(0, new Rotation2d(Math.PI / 4))
+        };
     }
 }

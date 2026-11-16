@@ -1,7 +1,4 @@
 package frc.robot.subsystems.drive;
 
-public class Autos {
-    public Autos() {
-        System.out.println("[Init] Creating Autos");
-    }
-}
+/** Placeholder: autos land here once the robot has a game mechanism to score with. */
+public class Autos {}

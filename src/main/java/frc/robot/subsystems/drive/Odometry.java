@@ -9,45 +9,34 @@ import frc.robot.Constants.CAN;
 import frc.robot.Constants.DriveConstants;
 import org.littletonrobotics.junction.Logger;
 
+/** Pigeon heading plus wheel odometry, fused into one pose. Vision can be added later. */
 public class Odometry extends SubsystemBase {
     private final Swerve swerve;
-    private final SwerveDrivePoseEstimator poseEstimator;
     private final Pigeon2 pigeon;
+    private final SwerveDrivePoseEstimator estimator;
 
     public Odometry(Swerve swerve) {
-        System.out.println("[Init] Creating Odometry");
-
         this.swerve = swerve;
-
-        this.pigeon = new Pigeon2(CAN.kPigeonPort);
-        this.poseEstimator =
+        pigeon = new Pigeon2(CAN.kPigeonPort);
+        estimator =
                 new SwerveDrivePoseEstimator(
-                        DriveConstants.kDriveKinematics,
-                        pigeon.getRotation2d(),
+                        DriveConstants.kKinematics,
+                        getHeading(),
                         swerve.getPositions(),
                         new Pose2d());
     }
 
     @Override
     public void periodic() {
-        Logger.recordOutput(getName() + "/Pose", getPose());
-        poseEstimator.update(getHeading(), swerve.getPositions());
+        // swerve.getPositions() already swaps out failed module encoders.
+        estimator.update(getHeading(), swerve.getPositions());
+        Logger.recordOutput("Odometry/Pose", getPose());
     }
 
-    public void setHeading(Rotation2d heading) {
-        pigeon.setYaw(heading.getDegrees());
-    }
-
-    public void resetHeading() {
+    /** Back button: field forward is now robot forward and the pose starts again at the origin. */
+    public void reset() {
         pigeon.setYaw(0);
-    }
-
-    public void addVisionPose(Pose2d pose, double timestamp) {
-        poseEstimator.addVisionMeasurement(pose, timestamp);
-    }
-
-    public void setPose(Pose2d pose) {
-        poseEstimator.resetPosition(pigeon.getRotation2d(), swerve.getPositions(), pose);
+        estimator.resetPosition(getHeading(), swerve.getPositions(), new Pose2d());
     }
 
     public Rotation2d getHeading() {
@@ -55,6 +44,6 @@ public class Odometry extends SubsystemBase {
     }
 
     public Pose2d getPose() {
-        return poseEstimator.getEstimatedPosition();
+        return estimator.getEstimatedPosition();
     }
 }
