@@ -27,6 +27,15 @@ public class DriveController {
         return -hid.getRightX();
     }
 
+    /** Right stick as a vector; only point mode reads it, where its angle is the target heading. */
+    public double rightForward() {
+        return -hid.getRightY();
+    }
+
+    public double rightStrafe() {
+        return -hid.getRightX();
+    }
+
     public boolean slowMode() {
         return hid.getHID().getRightBumperButton();
     }

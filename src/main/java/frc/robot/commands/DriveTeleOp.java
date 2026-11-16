@@ -69,7 +69,7 @@ public class DriveTeleOp extends Command {
     private ChassisSpeeds pointAt(double forward, double strafe, double turnSpeed) {
         Rotation2d target =
                 DriveMath.stickHeading(
-                        controller.forward(), controller.strafe(), OIConstants.kDeadband);
+                        controller.rightForward(), controller.rightStrafe(), OIConstants.kDeadband);
         if (target != null) pointHeading = target;
 
         double error = pointHeading.minus(odometry.getHeading()).getRadians();
