@@ -95,10 +95,14 @@ class SwerveModuleTest {
         Swerve swerve = new Swerve(fl, fr, bl, br);
         swerve.getPositions(); // seed last positions
 
+        swerve.setStates(new ChassisSpeeds(1, 0, 0));
+        assertTrue(Math.abs(fl.commandedVelocity) > 0.5, "module was driving before the failure");
+
         fl.connected = false;
         swerve.updateModuleHealth();
 
         assertTrue(fl.coast, "failed module should coast");
+        assertEquals(0, fl.commandedVelocity, 1e-9, "failed module is stopped, not left driving");
         assertEquals(1.0, swerve.getPositions()[0].distanceMeters, 1e-9, "no jump when it drops");
 
         swerve.setStates(new ChassisSpeeds(1, 0, 0));

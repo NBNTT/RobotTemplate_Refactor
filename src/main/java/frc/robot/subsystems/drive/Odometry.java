@@ -19,6 +19,7 @@ public class Odometry extends SubsystemBase {
 
     public Odometry(Swerve swerve) {
         this.swerve = swerve;
+        // Pigeon on the roboRIO CAN bus; add the bus name if it ever moves to a CANivore.
         pigeon = new Pigeon2(CAN.kPigeonPort);
         readGyro();
         estimator =

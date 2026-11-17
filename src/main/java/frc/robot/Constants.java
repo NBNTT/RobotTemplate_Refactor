@@ -99,7 +99,7 @@ public final class Constants {
         public static final double kTrackWidth = Units.inchesToMeters(21.75);
         public static final double kWheelBase = Units.inchesToMeters(21.75);
 
-        public static final int kGear = 1;
+        public static final int kGear = 1; // Must match the installed SDS cartridge.
 
         /** Module order everywhere in this code is FL, FR, BL, BR. */
         public static final SwerveDriveKinematics kKinematics =
@@ -109,6 +109,8 @@ public final class Constants {
                         new Translation2d(-kWheelBase / 2, kTrackWidth / 2), // BL (-x, +y)
                         new Translation2d(-kWheelBase / 2, -kTrackWidth / 2)); // BR (-x, -y)
 
+        // Encoder offsets are measured with the wheels straight. All zero means uncalibrated:
+        // every module will steer to a wrong angle until these four numbers are measured.
         public static final SwerveModulePreset kModuleFL =
                 new SwerveModulePreset(
                         CAN.kDriveMotorPortFL, CAN.kTurnMotorPortFL, false, false, 0, 0);

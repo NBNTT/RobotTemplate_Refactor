@@ -1,6 +1,7 @@
 package frc.robot.subsystems.drive;
 
 import com.revrobotics.PersistMode;
+import com.revrobotics.REVLibError;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -26,6 +27,7 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
     private final PIDController drivePid, turnPid;
     private final double encoderOffsetRad;
     private final double driveKv;
+    private boolean configured;
 
     public SparkMaxSwerveModule(SwerveModulePreset preset) {
         driveMotor = new SparkMax(preset.drivePort, MotorType.kBrushless);
@@ -45,7 +47,8 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
         turnConfig.inverted(preset.turnInverted);
         turnConfig.idleMode(IdleMode.kBrake);
 
-        applyConfigs(ResetMode.kResetSafeParameters);
+        // A controller that is not ready at boot leaves this false; isConnected retries the apply.
+        configured = applyConfigs(ResetMode.kResetSafeParameters);
 
         absoluteEncoder = new AnalogInput(preset.encoderPort);
         encoderOffsetRad = preset.encoderOffsetRad;
@@ -61,9 +64,14 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
         return new PIDController(gains.p(), gains.i(), gains.d());
     }
 
-    private void applyConfigs(ResetMode resetMode) {
-        driveMotor.configure(driveConfig, resetMode, PersistMode.kNoPersistParameters);
-        turnMotor.configure(turnConfig, resetMode, PersistMode.kNoPersistParameters);
+    private boolean applyConfigs(ResetMode resetMode) {
+        boolean driveOk =
+                driveMotor.configure(driveConfig, resetMode, PersistMode.kNoPersistParameters)
+                        == REVLibError.kOk;
+        boolean turnOk =
+                turnMotor.configure(turnConfig, resetMode, PersistMode.kNoPersistParameters)
+                        == REVLibError.kOk;
+        return driveOk && turnOk;
     }
 
     @Override
@@ -83,7 +91,18 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
         IdleMode idleMode = coast ? IdleMode.kCoast : IdleMode.kBrake;
         driveConfig.idleMode(idleMode);
         turnConfig.idleMode(idleMode);
-        applyConfigs(ResetMode.kNoResetSafeParameters);
+        if (coast) {
+            // Failure path: never block the loop on a controller that may be off the bus.
+            driveMotor.configureAsync(
+                    driveConfig,
+                    ResetMode.kNoResetSafeParameters,
+                    PersistMode.kNoPersistParameters);
+            turnMotor.configureAsync(
+                    turnConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters);
+        } else {
+            // Back on the bus, so re-apply everything and trust the result.
+            configured = applyConfigs(ResetMode.kNoResetSafeParameters);
+        }
     }
 
     @Override
@@ -105,14 +124,19 @@ public class SparkMaxSwerveModule implements SwerveModuleIO {
     @Override
     public Rotation2d getTurnAngle() {
         // Analog absolute encoder: 0-5 V spans exactly one wheel rotation.
-        double rotations = absoluteEncoder.getAverageVoltage() / RobotController.getVoltage5V();
+        double rail = RobotController.getVoltage5V();
+        if (rail < 1) rail = 5; // a zero rail reading would turn the angle into NaN
+        double rotations = absoluteEncoder.getAverageVoltage() / rail;
         return new Rotation2d(rotations * 2 * Math.PI + encoderOffsetRad);
     }
 
     @Override
     public boolean isConnected() {
         // A SparkMax that is not on the bus reports 0 V for its own supply.
-        return driveMotor.getBusVoltage() > 1 && turnMotor.getBusVoltage() > 1;
+        if (driveMotor.getBusVoltage() <= 1 || turnMotor.getBusVoltage() <= 1) return false;
+        // Retry a missed config once the controller answers, so defaults never go unnoticed.
+        if (!configured) configured = applyConfigs(ResetMode.kNoResetSafeParameters);
+        return configured;
     }
 
     private static double clamp(double volts) {

@@ -25,6 +25,8 @@ public class SwerveModule {
     /** Failure means coast, no commands, and pose ignores this encoder. */
     void setFailed(boolean failed) {
         this.failed = failed;
+        // A coasting wheel must not keep its last voltage: idle mode alone does not stop a motor.
+        if (failed) io.stop();
         io.setCoast(failed);
     }
 

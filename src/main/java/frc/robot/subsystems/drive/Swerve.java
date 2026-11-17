@@ -13,9 +13,9 @@ import org.littletonrobotics.junction.Logger;
 public class Swerve extends SubsystemBase {
     private final SwerveModule[] modules;
     // Keeps each module's reported distance continuous when it drops off and comes back.
-    private final double[] positionOffsets = new double[4];
-    private final double[] lastPositionsMeters = new double[4];
-    private final boolean[] wasFailed = new boolean[4];
+    private final double[] positionOffsets;
+    private final double[] lastPositionsMeters;
+    private final boolean[] wasFailed;
 
     public Swerve(
             SwerveModuleIO frontLeft,
@@ -29,6 +29,9 @@ public class Swerve extends SubsystemBase {
                     new SwerveModule(backLeft),
                     new SwerveModule(backRight)
                 };
+        positionOffsets = new double[modules.length];
+        lastPositionsMeters = new double[modules.length];
+        wasFailed = new boolean[modules.length];
     }
 
     public void setStates(SwerveModuleState[] states) {

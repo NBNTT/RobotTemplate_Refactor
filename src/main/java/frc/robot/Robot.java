@@ -7,19 +7,21 @@ package frc.robot;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 public class Robot extends LoggedRobot {
-    private static final long kLogRetentionMillis = 7L * 24 * 60 * 60 * 1000;
+    private static final int kLogsToKeep = 20;
 
     private final RobotContainer robotContainer;
 
     public Robot() {
         File logDir = new File(RobotBase.isReal() ? "/home/lvuser/logs" : "logs");
-        deleteLogsOlderThan(logDir, System.currentTimeMillis() - kLogRetentionMillis);
+        trimOldLogs(logDir);
 
         Logger.addDataReceiver(new WPILOGWriter(logDir.getPath()));
         Logger.addDataReceiver(new NT4Publisher());
@@ -29,15 +31,12 @@ public class Robot extends LoggedRobot {
         robotContainer = new RobotContainer();
     }
 
-    /** The Rio disk is small; a season of logs would fill it. */
-    private static void deleteLogsOlderThan(File logDir, long cutoffMillis) {
-        File[] oldLogs =
-                logDir.listFiles(
-                        file ->
-                                file.getName().endsWith(".wpilog")
-                                        && file.lastModified() < cutoffMillis);
-        if (oldLogs == null) return;
-        for (File log : oldLogs) log.delete();
+    /** The Rio disk is small; keep the newest runs and delete the rest. */
+    private static void trimOldLogs(File logDir) {
+        File[] logs = logDir.listFiles(file -> file.getName().endsWith(".wpilog"));
+        if (logs == null || logs.length <= kLogsToKeep) return;
+        Arrays.sort(logs, Comparator.comparingLong(File::lastModified));
+        for (int i = 0; i < logs.length - kLogsToKeep; i++) logs[i].delete();
     }
 
     @Override
