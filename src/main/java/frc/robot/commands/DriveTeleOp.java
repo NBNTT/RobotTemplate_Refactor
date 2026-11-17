@@ -4,7 +4,6 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
@@ -45,7 +44,7 @@ public class DriveTeleOp extends Command {
         if (mode == Mode.POINT) pointHeading = odometry.getHeading(); // no snap on entry
     }
 
-    /** Back button: drop the held point target and re-zero the field. */
+    /** Orient: whatever way the robot points now becomes forward, on either alliance. */
     public void resetHeading() {
         pointHeading = new Rotation2d();
         odometry.reset();
@@ -64,23 +63,19 @@ public class DriveTeleOp extends Command {
         double strafe = DriveMath.curve(controller.strafe(), OIConstants.kDeadband) * speed;
         double turn = DriveMath.curve(controller.turn(), OIConstants.kDeadband) * turnSpeed;
 
-        // Red drivers face the other way, so their "forward" is the field's backward.
-        double fieldSign =
-                DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red ? -1 : 1;
-
         boolean gyroOk = odometry.isGyroOk();
         if (!gyroOk || !gyroWasOk)
             pointHeading = odometry.getHeading(); // never resume an old target
         gyroWasOk = gyroOk;
 
         // A dead gyro means no field frame, so every mode falls back to robot-relative.
+        // Forward is whatever the robot faced at the last orient press, so no alliance flip.
         ChassisSpeeds speeds =
                 switch (gyroOk ? mode : Mode.ROBOT) {
                     case ROBOT -> new ChassisSpeeds(forward, strafe, turn);
                     case FIELD -> ChassisSpeeds.fromFieldRelativeSpeeds(
-                            forward * fieldSign, strafe * fieldSign, turn, odometry.getHeading());
-                    case POINT -> pointAt(
-                            forward * fieldSign, strafe * fieldSign, turnSpeed, fieldSign < 0);
+                            forward, strafe, turn, odometry.getHeading());
+                    case POINT -> pointAt(forward, strafe, turnSpeed);
                 };
         swerve.setStates(speeds);
     }
@@ -89,15 +84,11 @@ public class DriveTeleOp extends Command {
      * Right stick angle is an absolute field heading, so the robot turns to face it instead of
      * spinning at a stick-dependent rate. Centering the stick holds the last heading.
      */
-    private ChassisSpeeds pointAt(
-            double forward, double strafe, double turnSpeed, boolean redAlliance) {
+    private ChassisSpeeds pointAt(double forward, double strafe, double turnSpeed) {
         Rotation2d target =
                 DriveMath.stickHeading(
                         controller.rightForward(), controller.rightStrafe(), OIConstants.kDeadband);
-        if (target != null) {
-            // Stick up means "face the other wall" on red, so the field target turns half a circle.
-            pointHeading = redAlliance ? target.plus(Rotation2d.kPi) : target;
-        }
+        if (target != null) pointHeading = target;
 
         double error = pointHeading.minus(odometry.getHeading()).getRadians();
         double omega = MathUtil.clamp(DriveConstants.kHeadingKp * error, -turnSpeed, turnSpeed);

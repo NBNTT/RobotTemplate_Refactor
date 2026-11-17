@@ -77,7 +77,7 @@ public final class Constants {
         // Doubles matter: 225 / 32 as ints would silently become 7.
         public static final double[] kDriveGearRatios = {1, 225.0 / 32, 675.0 / 112, 675.0 / 128};
 
-        /** Motor free speed at 12 V: NEO 5676 rpm, NEO Vortex 6784 rpm. */
+        /** NEO free speed at 12 V. Use 6784 for a Vortex. */
         public static final double kMotorFreeSpeedRpm = 5676;
 
         // Steer needs real voltage against the 26:1 gear; drive adds kV feedforward in code.

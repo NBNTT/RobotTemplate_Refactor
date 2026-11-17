@@ -36,11 +36,12 @@ public class Odometry extends SubsystemBase {
         Logger.recordOutput("Odometry/GyroOk", gyroOk);
     }
 
-    /** Back button: field forward is robot forward again and the pose restarts at the origin. */
+    /** Orient: the way the robot points now becomes forward. The pose keeps its position. */
     public void reset() {
         pigeon.setYaw(0);
         readGyro();
-        estimator.resetPosition(heading, swerve.getPositions(), new Pose2d());
+        estimator.resetPosition(
+                heading, swerve.getPositions(), new Pose2d(getPose().getTranslation(), heading));
     }
 
     private void readGyro() {
